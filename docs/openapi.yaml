@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: Lists API
+  version: "1.0.0"
+  description: REST API для управления списками (CRUD, PostgreSQL)
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Lists
+    description: Операции со списками
+  - name: Health
+    description: Проверка состояния сервиса
+paths:
+  /api/v1/lists:
+    post:
+      tags: [Lists]
+      operationId: createList
+      summary: Создать список
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListRequest'
+            examples:
+              example:
+                value:
+                  title: Дом
+                  description: Список дел
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    get:
+      tags: [Lists]
+      operationId: listLists
+      summary: Получить списки
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Ок
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/List'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/lists/{id}:
+    get:
+      tags: [Lists]
+      operationId: getList
+      summary: Получить список по id
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Ок
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    patch:
+      tags: [Lists]
+      operationId: updateList
+      summary: Обновить title списка
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateListRequest'
+            examples:
+              example:
+                value:
+                  title: Домашние дела
+      responses:
+        '200':
+          description: Ок
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags: [Lists]
+      operationId: deleteList
+      summary: Удалить список
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Удалено
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/lists/search:
+    get:
+      tags: [Lists]
+      operationId: searchByTitle
+      summary: Получить список по title
+      parameters:
+        - $ref: '#/components/parameters/Title'
+      responses:
+        '200':
+          description: Ок
+          content:
+            application/json:
+              schema:
+                type: array
+                $ref: '#/components/schemas/List'
+        '404':
+          description: Неверный запрос (отсутствует параметр 'q')
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Проверка здоровья сервиса
+      responses:
+        '200':
+          description: Ок
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: UUID списка
+      schema:
+        type: string
+        format: uuid
+    Title:
+      name: title
+      in: query
+      required: true
+      description: Поисковый запрос по названию
+      schema:
+        type: string
+        minLength: 1     
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Максимум элементов в ответе
+      schema:
+        type: integer
+        minimum: 0
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Смещение в выборке
+      schema:
+        type: integer
+        minimum: 0
+
+  schemas:
+    List:
+      type: object
+      required: [id, title, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Идентификатор списка
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Название списка
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Время создания (RFC3339)
+      example:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        title: Дом
+        created_at: "2025-01-01T12:00:00Z"
+
+    CreateListRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+
+    UpdateListRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Машинный код ошибки
+        message:
+          type: string
+          description: Человекочитаемое описание
+        details:
+          description: Дополнительные сведения
+      example:
+        code: VALIDATION_FAILED
+        message: title must be 1..100 chars
+
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+
+  responses:
+    NotFound:
+      description: Не найдено
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            example:
+              value:
+                code: NOT_FOUND
+                message: list not found
+    ValidationError:
+      description: Ошибка валидации запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            example:
+              value:
+                code: VALIDATION_FAILED
+                message: title must be 1..100 chars
+    ServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            example:
+              value:
+                code: INTERNAL_ERROR
+                message: unexpected error
