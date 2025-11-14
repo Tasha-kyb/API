@@ -7,6 +7,9 @@ build:
 tidy:
 	go mod tidy
 
+swagger:
+    swag init -g cmd/todo-api/main.go -o ./docs
+
 # Переменные
 DB_URL=postgres://todo_user:todo_password@localhost:5432/todo_db?sslmode=disable
 

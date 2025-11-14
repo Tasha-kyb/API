@@ -5,24 +5,16 @@ import (
 	"fmt"
 
 	"RestApi/internal/domain"
+	"RestApi/internal/storage"
 )
 
 var ErrValidation = errors.New("VALIDATION_FAILED")
 
-type Repository interface {
-	Create(title string) (domain.List, error)
-	GetByID(id string) (domain.List, error)
-	SearchByTitle(query string) ([]domain.List, error)
-	Update(id string, title string) (domain.List, error)
-	Delete(id string) error
-	List(limit, offset int) ([]domain.List, int, error)
-}
-
 type ListService struct {
-	repo Repository
+	repo storage.ListRepository
 }
 
-func NewListService(repo Repository) *ListService {
+func NewListService(repo storage.ListRepository) *ListService {
 	return &ListService{repo: repo}
 }
 
@@ -42,6 +34,7 @@ func (l *ListService) SearchByTitle(query string) ([]domain.List, error) {
 }
 
 func (l *ListService) Update(id string, title string) (domain.List, error) {
+
 	if err := validateTitle(title); err != nil {
 		return domain.List{}, err
 	}

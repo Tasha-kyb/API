@@ -1,3 +1,14 @@
+// @title Tasks API
+// @version 1.0.0
+// @description REST API для управления списками и задачами (CRUD, PostgreSQL)
+
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 package main
 
 import (
@@ -13,6 +24,7 @@ import (
 	"RestApi/internal/database"
 	myhttp "RestApi/internal/http"
 	"RestApi/internal/http/handlers"
+	_ "RestApi/internal/http/handlers"
 	"RestApi/internal/http/middleware"
 	"RestApi/internal/service"
 	"RestApi/internal/storage/postgres"
@@ -35,17 +47,21 @@ func main() {
 	log.Println("Connected to database")
 
 	// Создаем репозиторий PostgreSQL
-	repo := postgres.NewListRepo(pool)
+	listRepo := postgres.NewListRepo(pool)
+	taskRepo := postgres.NewTaskRepo(pool)
 
 	// Создаем сервис
-	svc := service.NewListService(repo)
+	listService := service.NewListService(listRepo)
+	taskService := service.NewTaskService(taskRepo, listRepo)
 
 	// Создаем HTTP-роутер
-	handler := handlers.NewListHandler(svc)
-	router := myhttp.NewHTTPServer(handler)
+	listHandler := handlers.NewListHandler(listService)
+	taskHandler := handlers.NewTaskHandler(taskService)
+
+	httpServer := myhttp.NewHTTPServer(listHandler, taskHandler)
 
 	// Создаем обработчик с middleware
-	httpHandler := middleware.RequestID(router)
+	httpHandler := middleware.RequestID(httpServer)
 	httpHandler = middleware.Logging(httpHandler)
 
 	// Создаем HTTP-сервер
